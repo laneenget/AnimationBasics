@@ -48,20 +48,24 @@ Vec2 pos; //Circle position
 Vec2 vel; //Circle velocity
 float r;  //Circle radius
 
+float easing = 0.5;
 float speed = 4;
 
 void update(float dt){
   Vec2 mousePos = new Vec2(mouseX, mouseY);
   Vec2 dir = new Vec2(mousePos.x-pos.x,mousePos.y-pos.y); //Should be vector pointing from pos to MousePos
-  if (dir.length() > 0) dir.normalize();
-  if (speed*dt > dir.length()) {
+  println(dir.length());
+  println(speed);
+  println(dt);
+  if (speed*easing > dir.length()) {
     pos.x = mouseX;
     pos.y = mouseY;
     vel.x = 0.0;
     vel.y = 0.0;
   } else {
-    vel = dir.times(speed+100*dt);
-    pos.add(vel);
+    if (dir.length() > 0) dir.normalize();
+    dir.times(speed+100*dt);
+    pos.add(dir);
   }
 }
 

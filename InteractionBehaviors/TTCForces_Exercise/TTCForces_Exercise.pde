@@ -45,12 +45,12 @@ CHALLENGE:
   3. Add a static obstacle for the agent to avoid (hint: treat it as an agent with 0 velocity).
 */
 
-static int maxNumAgents = 3;
-int numAgents = 3;
+static int maxNumAgents = 5;
+int numAgents = 5;
 
-float k_goal = 1;  //TODO: Tune this parameter to agent stop naturally on their goals
-float k_avoid = 1;
-float agentRad = 40;
+float k_goal = 5;  //TODO: Tune this parameter to agent stop naturally on their goals
+float k_avoid = 100;
+float agentRad = 25;
 float goalSpeed = 100;
 
 //The agent states
@@ -63,16 +63,19 @@ Vec2[] goalPos = new Vec2[maxNumAgents];
 
 void setup(){
   size(850,650);
-  //size(850,650,P3D); //Smoother
- 
+  resetSimulation();
+  
+  println("Press <space> to unpause");
+  println("Press 'r' to reset");
+}
+
+void resetSimulation(){
   //Set initial agent positions and goals
-  agentPos[0] = new Vec2(220,610);
-  agentPos[1] = new Vec2(320,650);
-  agentPos[2] = new Vec2(320,420);
-  goalPos[0] = new Vec2(200,420);
-  goalPos[1] = new Vec2(120,120);
-  goalPos[2] = new Vec2(220,220);
- 
+  for (int i = 0; i < numAgents; i++){ 
+    agentPos[i] = new Vec2(random(850),random(650)); 
+    goalPos[i] = new Vec2(random(850),random(650));
+  }
+  
   //Set initial velocities to cary agents towards their goals
   for (int i = 0; i < numAgents; i++){
     agentVel[i] = goalPos[i].minus(agentPos[i]);
@@ -81,23 +84,48 @@ void setup(){
   }
 }
 
-//Return at what time agents 1 and 2 collide if they keep their current velocities
-// or -1 if there is no collision.
+//When will agents 1 and 2 collide if they keep their current velocities?
 float computeTTC(Vec2 pos1, Vec2 vel1, float radius1, Vec2 pos2, Vec2 vel2, float radius2){
-  return -1;
+  //return -1;
+  float combinedRadius = radius1+radius2;
+  Vec2 relativeVelocity = vel1.minus(vel2);
+  float ttc = rayCircleIntersectTime(pos2, combinedRadius, pos1, relativeVelocity);
+  return ttc;
 }
 
-// Compute attractive forces to draw agents to their goals,
+// Compute attractive forces to draw agents to their goals, 
 // and avoidance forces to anticipatory avoid collisions
 Vec2 computeAgentForces(int id){
   //TODO: Make this better
   Vec2 acc = new Vec2(0,0);
- 
+  
+  
+  Vec2 goalVel = goalPos[id].minus(agentPos[id]);
+  if (goalVel.length() > goalSpeed) goalVel.setToLength(goalSpeed);
+  Vec2 goalForce = (goalVel.minus(agentVel[id]));
+  acc.add(goalForce.times(k_goal));
+  
+  if (goalVel.length() < 5) return acc;
+  
+
+  for (int j = 0; j < numAgents; j++){
+    if (j == id) continue;
+    float ttc = computeTTC(agentPos[id],agentVel[id], agentRad, agentPos[j],agentVel[j], agentRad);
+    Vec2 futurePos_id = agentPos[id].plus(agentVel[id].times(ttc));
+    Vec2 futurePos_j = agentPos[j].plus(agentVel[j].times(ttc));
+    Vec2 avoidDir = futurePos_id.minus(futurePos_j).normalized();
+    Vec2 avoidForce = avoidDir.times(1/ttc);
+    //println(ttc, avoidForce.x, avoidForce.y);
+    if (ttc > 0){
+      acc.add(avoidForce.times(k_avoid));
+    }
+  }
+  
   return acc;
 }
 
 
-//Update agent positions & velocities based acceleration
+//
 void moveAgent(float dt){
   //Compute accelerations for every agents
   for (int i = 0; i < numAgents; i++){
@@ -113,53 +141,51 @@ void moveAgent(float dt){
 boolean paused = true;
 void draw(){
   background(255,255,255); //White background
- 
+  
   //Update agent if not paused
   if (!paused){
     moveAgent(1.0/frameRate);
   }
- 
-  //Draw orange goal rectangle
-  fill(255,150,50);
+  
+  //Draw goal rectangle
+  fill(255,50,50);
   for (int i = 0; i < numAgents; i++){
-    rect(goalPos[i].x-10, goalPos[i].y-10, 20, 20);
+    rect(goalPos[i].x-5, goalPos[i].y-5, 10, 10);
   }
- 
-  //Draw the green agents
-  fill(20,200,150);
+  
+  //Draw the agents
+  fill(20,120,175);
   for (int i = 0; i < numAgents; i++){
-    circle(agentPos[i].x, agentPos[i].y, agentRad*2);
+    circle(agentPos[i].x, agentPos[i].y, agentRad*1.95); //Shrink drawn radius
   }
 }
 
 //Pause/unpause the simulation
 void keyPressed(){
   if (key == ' ') paused = !paused;
+  if (key == 'r') resetSimulation();
 }
 
-
 ///////////////////////
-
 float rayCircleIntersectTime(Vec2 center, float r, Vec2 l_start, Vec2 l_dir){
- 
   //Compute displacement vector pointing from the start of the line segment to the center of the circle
   Vec2 toCircle = center.minus(l_start);
- 
+  
   //Solve quadratic equation for intersection point (in terms of l_dir and toCircle)
-  float a = l_dir.length();
+  float a = l_dir.length()*l_dir.length(); 
   float b = -2*dot(l_dir,toCircle); //-2*dot(l_dir,toCircle)
   float c = toCircle.lengthSqr() - (r*r); //different of squared distances
- 
-  float d = b*b - 4*a*c; //discriminant
- 
-  if (d >=0 ){
+  
+  float d = b*b - 4*a*c; //discriminant 
+  
+  if (d >=0 ){ 
     //If d is positive we know the line is colliding
-    float t = (-b - sqrt(d))/(2*a); //Optimization: we typically only need the first collision!
+    float t = (-b - sqrt(d))/(2*a); //Optimization: we typically only need the first collision! 
     if (t >= 0) return t;
     return -1;
   }
- 
-  return -1; //We are not colliding, so there is no good t to return
+  
+  return -1; //We are not colliding, so there is no good t to return 
 }
 
 //////////////////////
@@ -169,51 +195,41 @@ float rayCircleIntersectTime(Vec2 center, float r, Vec2 l_start, Vec2 l_dir){
 
 public class Vec2 {
   public float x, y;
- 
+  
   public Vec2(float x, float y){
     this.x = x;
     this.y = y;
   }
- 
+  
   public String toString(){
     return "(" + x+ "," + y +")";
   }
- 
+  
   public float length(){
     return sqrt(x*x+y*y);
   }
- 
+  
   public float lengthSqr(){
     return x*x+y*y;
   }
- 
+  
   public Vec2 plus(Vec2 rhs){
     return new Vec2(x+rhs.x, y+rhs.y);
   }
- 
+  
   public void add(Vec2 rhs){
     x += rhs.x;
     y += rhs.y;
   }
- 
+  
   public Vec2 minus(Vec2 rhs){
     return new Vec2(x-rhs.x, y-rhs.y);
   }
- 
-  public void subtract(Vec2 rhs){
-    x -= rhs.x;
-    y -= rhs.y;
-  }
- 
+  
   public Vec2 times(float rhs){
     return new Vec2(x*rhs, y*rhs);
   }
- 
-  public void mul(float rhs){
-    x *= rhs;
-    y *= rhs;
-  }
- 
+  
   public void clampToLength(float maxL){
     float magnitude = sqrt(x*x + y*y);
     if (magnitude > maxL){
@@ -221,43 +237,20 @@ public class Vec2 {
       y *= maxL/magnitude;
     }
   }
- 
+  
   public void setToLength(float newL){
     float magnitude = sqrt(x*x + y*y);
     x *= newL/magnitude;
     y *= newL/magnitude;
   }
- 
-  public void normalize(){
-    float magnitude = sqrt(x*x + y*y);
-    x /= magnitude;
-    y /= magnitude;
-  }
- 
+  
   public Vec2 normalized(){
     float magnitude = sqrt(x*x + y*y);
     return new Vec2(x/magnitude, y/magnitude);
   }
- 
-  public float distanceTo(Vec2 rhs){
-    float dx = rhs.x - x;
-    float dy = rhs.y - y;
-    return sqrt(dx*dx + dy*dy);
-  }
-}
-
-Vec2 interpolate(Vec2 a, Vec2 b, float t){
-  return a.plus((b.minus(a)).times(t));
-}
-
-float interpolate(float a, float b, float t){
-  return a + ((b-a)*t);
+  
 }
 
 float dot(Vec2 a, Vec2 b){
   return a.x*b.x + a.y*b.y;
-}
-
-Vec2 projAB(Vec2 a, Vec2 b){
-  return b.times(a.x*b.x + a.y*b.y);
 }

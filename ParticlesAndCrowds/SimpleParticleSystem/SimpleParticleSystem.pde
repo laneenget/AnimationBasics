@@ -5,20 +5,20 @@
 //NOTE: The simulation starts paused! Press space to run it.
 
 //TODO:
-//  1. The balls start red, make them blue instead.
-//  2. Randomize the initial particle velocities so that xVel starts in the range (30,90),
+//  **1. The balls start red, make them blue instead.
+//  **2. Randomize the initial particle velocities so that xVel starts in the range (30,90),
 //     and yVel starts in the range (-190, -200)
-//  3. There is currently a small cap on the number of particles that can be spawned. 
+//  **3. There is currently a small cap on the number of particles that can be spawned. 
 //     Raise it up to 400.
 //  4. Currently, pressing the 'r' key prints that it's resetting the particle system,
 //     but it doesn’t actually reset anything yet. Fix that by having the simulation
 //     reset when the user presses 'r'.
-//  5. Pressing the arrow keys will move the big red ball, but sometimes we would like
+//  **5. Pressing the arrow keys will move the big red ball, but sometimes we would like
 //     to move it faster. Adjust the code so that holding 'shift' while an arrow key
 //     is pressed will make the red ball move twice as fast.
-//  6. The red ball only moves up/down/left/right. Change the code so that is two keys
+//  **6. The red ball only moves up/down/left/right. Change the code so that is two keys
 //     are pressed simultaneously the red ball will move diagonally.
-//  7. A common pitfall in games is that the diagonal motion is actually faster than
+//  **7. A common pitfall in games is that the diagonal motion is actually faster than
 //     horizontal motion (because you just add the vectors). Make sure your code solving Step 6 does not have that issue, and that the red ball moves diagonally at the same speed it move horizontally or vertically.
 //  8. The small blue balls (particles) have momentum, but they are missing the effect
 //     of acceleration due to gravity. Add gravity to the simulation. 
@@ -82,6 +82,14 @@ void update(float dt){
   if (rightPressed) obstacleVel = new Vec2(obstacleSpeed,0);
   if (upPressed) obstacleVel = new Vec2(0,-obstacleSpeed);
   if (downPressed) obstacleVel = new Vec2(0,obstacleSpeed);
+  if (leftPressed && shiftPressed) obstacleVel = new Vec2(-2*obstacleSpeed,0);
+  if (rightPressed && shiftPressed) obstacleVel = new Vec2(2*obstacleSpeed,0);
+  if (upPressed && shiftPressed) obstacleVel = new Vec2(0,-2*obstacleSpeed);
+  if (downPressed && shiftPressed) obstacleVel = new Vec2(0,2*obstacleSpeed);
+  if (leftPressed && upPressed) obstacleVel = new Vec2(-obstacleSpeed/2,-obstacleSpeed/2);
+  if (leftPressed && downPressed) obstacleVel = new Vec2(-obstacleSpeed/2,obstacleSpeed/2);
+  if (rightPressed && upPressed) obstacleVel = new Vec2(obstacleSpeed/2,-obstacleSpeed/2);
+  if (rightPressed && downPressed) obstacleVel = new Vec2(obstacleSpeed/2, obstacleSpeed/2);
   spherePos.add(obstacleVel.times(dt));
   
   for (int i = 0; i <  numParticles; i++){
@@ -130,7 +138,7 @@ void keyPressed(){
 void keyReleased(){
   if (key == 'r'){
     println("Reseting the System");
-    setup();
+    draw();
   }
   if (keyCode == LEFT) leftPressed = false;
   if (keyCode == RIGHT) rightPressed = false;
