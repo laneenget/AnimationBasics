@@ -4,18 +4,18 @@
 
 /*
 TODO:
-  1. Add a function so that when you press the 'r' key, the obstacles move to
+  **1. Add a function so that when you press the 'r' key, the obstacles move to
      new random locations with new random radii. Also, be sure to make a new
      PRM and plan a path over these new obstacles.
      [Hint: Look at setup() to see how I place obstacles, build the PRM, and run the BFS]
-  2. Currently edge connections of any length are allowed. Update the connectNeighbors()
+ **2. Currently edge connections of any length are allowed. Update the connectNeighbors()
      function to only allow edges if their length is less than 200 pixels. What use is there
      for this? Why do you think people sometimes put a maximum length on PRM edges?
   3. The function, closestNode() is supposed to return the ID of the PRM node 
      that is closest to the passed-in point. However, it currently returns a 
      random node. Once you fix the function, you should see that clicking with 
      the mouse lets you select the red goal node.
-  4. You can see we define a box obstacle with a top left corner, and a width and height.
+  **4. You can see we define a box obstacle with a top left corner, and a width and height.
      I have already written code to draw this box with the rect() command. Uncomment
      the code, to see the box drawn.
   5. For the PRM to be collision free wrt the box we need to make sure no nodes are
@@ -83,8 +83,8 @@ void draw(){
   
   //Draw the box obstacles
   //TODO: Uncomment this to draw the box
-  //fill(250,200,200);
-  //rect(boxTopLeft.x, boxTopLeft.y, boxW, boxH);
+  fill(250,200,200);
+  rect(boxTopLeft.x, boxTopLeft.y, boxW, boxH);
   
   //Draw PRM Nodes
   fill(0);
@@ -124,6 +124,9 @@ void keyPressed(){
   if (key == 'r'){
     //TODO: Randomize obstacle positions and radii
     //      Also, replan for these new obstacles.
+    placeRandomObstacles();
+    buildPRM(circlePos, circleRad, boxTopLeft, boxW, boxH);
+    runBFS(closestNode(startPos),closestNode(goalPos));
   }
   
   if (keyCode == RIGHT){
@@ -330,11 +333,14 @@ void connectNeighbors(){
     neighbors[i] = new ArrayList<Integer>();  //Clear neighbors list
     for (int j = 0; j < numNodes; j++){
       if (i == j) continue; //don't connect to myself 
-      Vec2 dir = nodePos[j].minus(nodePos[i]).normalized();
-      float distBetween = nodePos[i].distanceTo(nodePos[j]);
-      hitInfo circleListCheck = rayCircleListIntesect(circlePos, circleRad, nodePos[i], dir, distBetween);
-      if (!circleListCheck.hit){
-        neighbors[i].add(j);
+      Vec2 len = nodePos[j].minus(nodePos[i]);
+      if (len.x < 200 && len.y < 200){
+        Vec2 dir = len.normalized();
+        float distBetween = nodePos[i].distanceTo(nodePos[j]);
+        hitInfo circleListCheck = rayCircleListIntesect(circlePos, circleRad, nodePos[i], dir, distBetween);
+        if (!circleListCheck.hit){
+          neighbors[i].add(j);
+        }
       }
     }
   }
